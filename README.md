@@ -265,13 +265,13 @@ symbol, where each constructor defines a unique, possibly parametric,
 tag for the type. Nullary constructors are supported, e.g.:
 
 ```hs
-bool: False | True
+bool: false | true
 ```
 
 As are n-ary constructors:
 
 ```hs
-tree a: Leaf a | Node (Tree a) (Tree a)
+tree A: leaf A | node (tree A) (tree A)
 ```
 
 ### 2.5. Set operations
