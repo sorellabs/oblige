@@ -411,7 +411,7 @@ tag         :: typeName typeDef*
 
 -- | Set operations
 union      :: typeDef "+" typeDef
-complement :: typeDef "\" typeDef
+complement :: typeDef "\\" typeDef
 
 -- | Unit type
 unit :: "void"
