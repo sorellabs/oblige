@@ -7,6 +7,9 @@ designed towards annotating JavaScript source code, and in a way that
 could be used to derive static analysis tools (and support type
 inferencing).
 
+> **Note**: This document is a draft, things here may change at any
+> time.
+    
 
 ## 0. Prelude
 
@@ -418,3 +421,24 @@ unit :: "void"
 ## Appendix A
 
 ( ... ) TODO: Previous attempts on type notations for JS.
+
+
+## Licence
+
+<p xmlns:dct="http://purl.org/dc/terms/" xmlns:vcard="http://www.w3.org/2001/vcard-rdf/3.0#">
+  <a rel="license"
+     href="http://creativecommons.org/publicdomain/zero/1.0/">
+    <img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" style="border-style: none;" alt="CC0" />
+  </a>
+  <br />
+  To the extent possible under law,
+  <a rel="dct:publisher"
+     href="http://killdream.github.com/">
+    <span property="dct:title">Quildreen Motta</span></a>
+  has waived all copyright and related or neighboring rights to
+  <span property="dct:title">Oblige</span>.
+This work is published from:
+<span property="vcard:Country" datatype="dct:ISO3166"
+      content="BR" about="http://killdream.github.com/">
+  Brazil</span>.
+</p>
