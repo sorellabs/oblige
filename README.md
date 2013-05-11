@@ -38,7 +38,7 @@ Types are sets of possible values that fit a particular domain. In the
 most basic form, they can be encoded in Oblige as:
 
 ```hs
-<name> :: <rule>
+<name>: <rule>
 ```
 
 Where `name` is a human readable description of the domain, and `rule`
@@ -53,9 +53,9 @@ the range of values that the type describes **not the type name**.
 For example, the value `1` would match all the following types at once:
 
 ```hs
-byte  :: 0 ... 2^8
-int   :: 0 ... 2^32
-float :: 0 ... 2^64
+byte  : 0 ... 2^8
+int   : 0 ... 2^32
+float : 0 ... 2^64
 ```
 
 This is because all of those types include the value `1` as a possible
@@ -66,37 +66,58 @@ combined through union, intersection and difference operations.
 
 ### 1.2. The notation
 
-As mentioned before, types are encoded as simple `<name> :: <rule>`
+As mentioned before, types are encoded as simple `<name> : <rule>`
 definitions, which can be read as `<name> is the type of all
-<rule>`. E.g.: `int :: 0 ... 2^32` would be read as `int is the type of
+<rule>`. E.g.: `int : 0 ... 2^32` would be read as `int is the type of
 all numbers between 0 and 2³²`.
 
 Rules can contain simple values: `0`, `1`, ...; ranges of values: `0
 ... 2` (not inclusive); unique symbols: `'false`. 
 
-They can be aggregated using tuples: `(0, 1)` which are ordered
+They can be aggregated using tuples: `#[0, 1]` which are ordered
 sequences of values; lists: `[0]` which are repetitions of values; and
 maps: `{ 0 -> 1 }`.
 
 Types can be composed using the usual set operations/type theory: `|` is
-a disjoint union; `&` is intersection; and `-` is complement.
+a disjoint union; `+` is set union; `&` is intersection; and `-` is
+complement. And lastly, parenthesis can be used for grouping, in the
+same way they are used in JavaScript expressions.
 
 Of course, values can always be substituted by types, so if you have a
-`zero :: 0` declaration, it makes no difference if you use `binary :: 0
-| 1` or `binary :: zero | 1`.
+`zero : 0` declaration, it makes no difference if you use `binary : 0
+| 1` or `binary : zero | 1`.
 
 
-## 2. Basic types
+### 1.3. Type variables and scope
 
-### 2.1. The Universal Type
+Types all share a single scope. Types that can't be resolved to a
+previous declaration — type variables — are to be inferred by the
+inferring system (if any). Since these share the same scope, explicit
+type variables should be written as uppercase single letters.
+
+
+## 2. Types
+
+### 2.1. The Universal type
 
 The most basic type of all is the **universal type**, which encodes all
 the possible values that can ever come into existence in a given
 program. This is also called the `Top` type (⊤) in type theory.
 
 ```hs
-any :: ⊤
+any: ⊤
 ```
+
+### 2.2. The Unit type
+
+The `unit` type encodes a lack of value, and is usually used to signal
+the lack of a result value when a function is evaluated for its
+side-effects.
+
+```hs
+void: 'undefined
+```
+
 
 ### 2.2. Primitive types
 
@@ -106,29 +127,28 @@ complex primitive types like `String` or `Number`:
 
 
 ```hs
--- | No values
-null
-undefined
+-- | No value types
+null: 'null
 
 -- | Boolean types
-bool :: true | false
+bool: 'true | 'false
 
 -- | Numeric types
-uint8   ::     0 ... 2^8
-uint16  ::     0 ... 2^16
-uint32  ::     0 ... 2^32
-int8    ::  -2^8 ... 2^8
-int16   :: -2^16 ... 2^16
-int32   :: -2^32 ... 2^32
-float32 :: -2^32 ... 2^32
-float64 :: -2^64 ... 2^64
+uint8   :     0 ... 2^8
+uint16  :     0 ... 2^16
+uint32  :     0 ... 2^32
+int8    :  -2^8 ... 2^8
+int16   : -2^16 ... 2^16
+int32   : -2^32 ... 2^32
+float32 : -2^32 ... 2^32
+float64 : -2^64 ... 2^64
 
 -- | Character types
-char :: uint8
+char: uint8
 
 -- | Higher-level aliases
-number :: float64
-string :: [char]
+number: float64
+string: [char]
 ```
 
 ### 2.3. Parametric types
@@ -144,14 +164,14 @@ written in JavaScript, sans the parenthesis and commas. For example, one
 could define a list of "something" as:
 
 ```hs
-list a :: [a]
+list A: [A]
 ```
 
 And then, he would be able to use this definition to say that a
 particular code works with `lists of integers`:
 
 ```hs
-listOfIntegers :: list int
+listOfIntegers: list int
 ```
 
 Specialisation of types share the same notation as definition, and has a
@@ -167,8 +187,8 @@ values. In JavaScript's world, these are `Array` and `Object` most of
 the time.
 
 ```hs
-array a  :: [a]
-object a :: { string -> a }
+array A: [A]
+object A: { string -> A }
 ```
 
 
@@ -181,16 +201,95 @@ comparisons).
 
 
 ```hs
-nothing :: null | undefined
-falsy   :: "" | 0 | false | nothing
-truthy  :: any - falsy
+nothing: null | void
+falsy: "" | 0 | false | nothing
+truthy: any - falsy
 ```
 
 
 ### 2.6. Function types
 
+Function types specify the domain and image of a particular unit of
+computation. We use the `->` arrow function to specify that a function
+takes the input on the left and returns the output on the
+right:
+
+```hs
+identity: A -> A
+add: number, number -> number
+```
+
+A function that can take variadic arguments can specify it so by using
+the splat suffix:
+
+```hs
+concat: [A]... -> [A]
+```
+
+And optional parameters can be suffixed with a question mark:
+
+```hs
+slice: [A], number, number? -> [A]
+```
 
 
+### 2.7. Object types
+
+Objects are encoded using the map notation:
+
+```hs
+point: { 'x: int, 'y: int }
+```
+
+
+### 2.8. Prototypes
+
+A prototype can be explicitly specified by the `type <| prototype`
+notation, and is assumed to be the default for the given type if not
+specified.
+
+```hs
+list: { head: [A] -> maybe A
+      , tail: [A] -> [A]
+      }
+
+makeSequence: A... -> [A] <| list
+```
+
+### 2.9. Type predicates
+
+Types can have their domains further reduced by specifying a type
+predicate. A type predicate defines which set of values match the type
+with basis on a universal quantification. For example, which this
+information we might not necessarily know how the sort function works:
+
+```hs
+sort: [A] -> [A]
+```
+
+But it would be immediately obvious if the sorting domain was a little
+less broad. For instance, an implementation of `sort` where all values
+can be compared using the relational `greater than` or `less than`
+operators would be straightforward:
+
+```hs
+relational A: { '<: (A, A -> bool)
+              , '>: (A, A -> bool)
+              }
+              
+sort: relational A => [A] -> [A]
+```
+
+The last type could be read as "`sort` has a type `list of A`'s to `list
+of A`'s, where all `A`'s match the `relational` type."
+
+Besides constructor/parametric types, a useful usage of type predicates
+is to specify which kind of objects a function can be applied to in
+JavaScript, due to dynamic this binding:
+
+```
+pop: @[A] => [A] -> maybe A
+```
 
 ## Appendix A
 
