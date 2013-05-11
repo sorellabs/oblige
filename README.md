@@ -15,7 +15,7 @@ LiveScript) is an untyped language. Types are, however, a nice way of
 communicating constraints and expectations to the next programmer
 reading the code-base.
 
-There are some attempts[¹][appendix-a] at providing a type notation for
+There are some attempts[¹][1] at providing a type notation for
 JavaScript, despite its untyped nature, but they either do not provide a
 concise or compelling syntax to reduce the burden of maintaining such
 documentation, or plainly fall short on providing an expressive enough
@@ -28,6 +28,7 @@ tools that could be implemented on top of this specification.
 
 
 [2]: http://web.cecs.pdx.edu/~mpj/thih/TypingHaskellInHaskell.html
+[1]: #appendix-a
 
 
 ## 1. Introduction
@@ -64,30 +65,6 @@ member of the set. This way, a type definition is nothing more than an
 combined through union, intersection and difference operations.
 
 
-### 1.2. The notation
-
-As mentioned before, types are encoded as simple `<name> : <rule>`
-definitions, which can be read as `<name> is the type of all
-<rule>`. E.g.: `int : 0 ... 2^32` would be read as `int is the type of
-all numbers between 0 and 2³²`.
-
-Rules can contain simple values: `0`, `1`, ...; ranges of values: `0
-... 2` (not inclusive); unique symbols: `'false`. 
-
-They can be aggregated using tuples: `#[0, 1]` which are ordered
-sequences of values; lists: `[0]` which are repetitions of values; and
-maps: `{ 0 -> 1 }`.
-
-Types can be composed using the usual set operations/type theory: `|` is
-a disjoint union; `+` is set union; `&` is intersection; and `-` is
-complement. And lastly, parenthesis can be used for grouping, in the
-same way they are used in JavaScript expressions.
-
-Of course, values can always be substituted by types, so if you have a
-`zero : 0` declaration, it makes no difference if you use `binary : 0
-| 1` or `binary : zero | 1`.
-
-
 ### 1.3. Type variables and scope
 
 Types all share a single scope. Types that can't be resolved to a
@@ -98,60 +75,127 @@ type variables should be written as uppercase single letters.
 
 ## 2. Types
 
-### 2.1. The Universal type
+As mentioned before, types are just sets of possible values, and they're
+matched structurally. At the end of the day, types are just names for
+these sets, not the sets themselves. Which means that a particular set
+may have several names — or even be spelled out fully.
 
-The most basic type of all is the **universal type**, which encodes all
-the possible values that can ever come into existence in a given
-program. This is also called the `Top` type (⊤) in type theory.
-
-```hs
-any: ⊤
-```
-
-### 2.2. The Unit type
-
-The `unit` type encodes a lack of value, and is usually used to signal
-the lack of a result value when a function is evaluated for its
-side-effects.
+Types are defined in the form:
 
 ```hs
-void: 'undefined
+<name> <parameters>: <rule>
 ```
 
+Where `<rule>` is what defines the set of possible values. These can be
+any combination of primitive types.
 
-### 2.2. Primitive types
 
-JavaScript has only a handful of conceptual primitive types. Oblige
-provides a few more conceptual types that form the basis of JavaScript
-complex primitive types like `String` or `Number`:
+### 2.1. Primitive types
 
+#### 2.1.1. Numbers
+
+Number values use the same notation as JavaScript numbers, except they
+refer to the exact value:
 
 ```hs
--- | No value types
-null: 'null
-
--- | Boolean types
-bool: 'true | 'false
-
--- | Numeric types
-uint8   :     0 ... 2^8
-uint16  :     0 ... 2^16
-uint32  :     0 ... 2^32
-int8    :  -2^8 ... 2^8
-int16   : -2^16 ... 2^16
-int32   : -2^32 ... 2^32
-float32 : -2^32 ... 2^32
-float64 : -2^64 ... 2^64
-
--- | Character types
-char: uint8
-
--- | Higher-level aliases
-number: float64
-string: [char]
+zero: 0
+one: 1
 ```
 
-### 2.3. Parametric types
+Besides this, you get the constants `+infinity`, `-infinity` and
+`nan`. And you can use exponentiation by way of the `n^m` notation:
+
+```hs
+byte: 2^8
+```
+
+Intervals can be specified by the `n ... m` syntax, which is similar to
+the `[n, m)` notation in mathematics, where the endpoint is excluded.
+
+
+#### 2.1.2. Unit
+
+The unit type is something that holds no value, and is usually used to 
+specify functions that are evaluated by their side-effects. It has the
+name `void`.
+
+
+#### 2.1.2. Tuples
+
+Tuples are an ordered sequence of types, and are encoded in Oblige as
+`#[type1, type2, ..., typeN]`. 
+
+
+#### 2.1.3. Lists
+
+Lists are collections of values, and are encoded in Oblige as
+`[type1, type2, ..., typeN]`, differently from tuples, lists don't
+specify the order in which the types should appear, but rather which
+types can be stored in the collection.
+
+
+#### 2.1.4. Records
+
+Record types are structures where the symbol on the left has the type on
+the right.
+
+```
+rect: { x: int, y: int, width: int, height: int }
+```
+
+
+### 2.1.5. Functions
+
+Function types specify the domain and image of a particular unit of
+computation. We use the `->` arrow function to specify that a function
+takes the input on the left and returns the output on the right:
+
+```hs
+-- | Identity a type A and returns something of the same type.
+identity: A -> A
+
+-- | Add takes two numbers, and returns a number
+add: number, number -> number
+```
+
+Of course, functions may return multiple values. This is not something
+that happens in JavaScript, but it's something that happens in Lua and
+concatenative languages:
+
+```hs
+foo A B: A, B -> A, B
+```
+
+A function that can take variadic arguments can specify it so by using
+the splat suffix:
+
+```hs
+-- | Concat takes any number of lists, and returns a single list
+concat: [A]... -> [A]
+```
+
+Optional parameters can be suffixed with a question mark:
+
+```hs
+slice: [A], number, number? -> [A]
+
+-- | This is equivalent to the more laborious overloaded notation:
+slice: [A], number -> [A]
+slice: [A], number, number -> [A]
+```
+
+
+### 2.1.6. Delegation
+
+Types can specify delegation fields by way of the `<|` operator.
+
+```hs
+-- | List delegates to all types on the right
+list <| collection, sequence
+```
+
+
+## 2.2. Parametric types
 
 Parametric types are those that can be specialised by way of a type
 constraint. This fits nicely on container types, where you can, for
@@ -179,84 +223,7 @@ parallel with function application in JavaScript (sans the
 parenthesis/commas).
 
 
-
-### 2.4. Container types
-
-Container types are parametric types that can contain other primitive
-values. In JavaScript's world, these are `Array` and `Object` most of
-the time.
-
-```hs
-array A: [A]
-object A: { string -> A }
-```
-
-
-### 2.5. Umbrella types
-
-Umbrella types are disjoint unions of high-level conceptual interfaces
-that we occasionally refer to. They're basically "bags" of types that
-are handled similarly in certain situations (e.g.: `Falsy` in boolean
-comparisons).
-
-
-```hs
-nothing: null | void
-falsy: "" | 0 | false | nothing
-truthy: any - falsy
-```
-
-
-### 2.6. Function types
-
-Function types specify the domain and image of a particular unit of
-computation. We use the `->` arrow function to specify that a function
-takes the input on the left and returns the output on the
-right:
-
-```hs
-identity: A -> A
-add: number, number -> number
-```
-
-A function that can take variadic arguments can specify it so by using
-the splat suffix:
-
-```hs
-concat: [A]... -> [A]
-```
-
-And optional parameters can be suffixed with a question mark:
-
-```hs
-slice: [A], number, number? -> [A]
-```
-
-
-### 2.7. Object types
-
-Objects are encoded using the map notation:
-
-```hs
-point: { 'x: int, 'y: int }
-```
-
-
-### 2.8. Prototypes
-
-A prototype can be explicitly specified by the `type <| prototype`
-notation, and is assumed to be the default for the given type if not
-specified.
-
-```hs
-list: { head: [A] -> maybe A
-      , tail: [A] -> [A]
-      }
-
-makeSequence: A... -> [A] <| list
-```
-
-### 2.9. Type predicates
+### 2.3. Type predicates
 
 Types can have their domains further reduced by specifying a type
 predicate. A type predicate defines which set of values match the type
@@ -273,8 +240,8 @@ can be compared using the relational `greater than` or `less than`
 operators would be straightforward:
 
 ```hs
-relational A: { '<: (A, A -> bool)
-              , '>: (A, A -> bool)
+relational A: { isGreater: (A, A -> bool)
+              , isLesser:  (A, A -> bool)
               }
               
 sort: relational A => [A] -> [A]
@@ -283,14 +250,92 @@ sort: relational A => [A] -> [A]
 The last type could be read as "`sort` has a type `list of A`'s to `list
 of A`'s, where all `A`'s match the `relational` type."
 
-Besides constructor/parametric types, a useful usage of type predicates
-is to specify which kind of objects a function can be applied to in
-JavaScript, due to dynamic this binding:
+A useful case for type predicates is to specify which kind of objects a
+function can be applied to in JavaScript, due to dynamic this binding:
 
 ```hs
 pop: @[A] => [A] -> maybe A
 ```
 
+
+### 2.4. Tagged unions
+
+Tagged unions can be defined by separating constructors with a `|`
+symbol, where each constructor defines a unique, possibly parametric,
+tag for the type. Nullary constructors are supported, e.g.:
+
+```hs
+bool: False | True
+```
+
+As are n-ary constructors:
+
+```hs
+tree a: Leaf a | Node (Tree a) (Tree a)
+```
+
+### 2.5. Set operations
+
+Types can be structurally combined through set operations, these
+include:
+
+  - `union`: By way of `a + b`, which creates a new type that matches
+    either things on the type A or type B.
+   
+  - `complement`: By way of `a \ b`, which creates a new type that
+    matches things on type A but not on type B.
+
+
+## 3. Built-in types for JavaScript
+
+The following is the list of built-in types for JavaScript:
+
+### 3.1. Primitive types
+
+```hs
+-- | No-value types
+type null
+undefined: void
+
+-- | Boolean types
+bool: true | false
+
+-- | Numeric types
+uint8   :     0 ... 2^8
+uint16  :     0 ... 2^16
+uint32  :     0 ... 2^32
+int8    :  -2^8 ... 2^8
+int16   : -2^16 ... 2^16
+int32   : -2^32 ... 2^32
+float32 : -2^32 ... 2^32
+float64 : -2^64 ... 2^64
+number  : float64
+
+-- | String types
+char   : uint8
+string : [char]
+
+-- | Container types
+array A  : [A]
+object A : { string -> A }
+
+-- | Umbrella types
+nothing : null | void
+falsy   : "" | 0 | false | nothing
+truthy  : any \ falsy
+
+-- | Built-in types
+type date
+type regexp
+```
+
+### 3.2. Common interfaces
+
+```hs
+array-like: { length: uint32 }
+```
+
+
 ## Appendix A
 
-( ... ) Previous attempts on type notations for JS.
+( ... ) TODO: Previous attempts on type notations for JS.
