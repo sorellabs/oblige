@@ -336,6 +336,85 @@ array-like: { length: uint32 }
 ```
 
 
+## 4. Formal syntax
+
+```hs
+typeDecl :: typeName typeName* ":" typeDef EOL
+
+reserved :: "void"
+typeName :: "a" .. "z" | "A" .. "Z" | "-" | "_" | "$"           ?(NOT reserved)
+
+typeDef :: group
+         | predicate
+         | union
+         | complement
+         | function
+         | delegation
+         | unit
+         | number
+         | tuple
+         | list
+         | record
+
+         
+typeDefs :: typeDef ("," typeDef)*         
+typeDecl :: typeDecl ("," typeDecl)*
+
+group :: "(" typeDef ")"
+
+-- | Numeric types         
+digit       :: "0" .. "9"
+digits      :: digit+
+sign        :: "-" | "+"
+number      :: "+infinity"
+             | "-infinity"
+             | "nan"
+             | exponential
+             | interval
+             | sign? digits ("." digits)
+exponential :: number "^" number
+interval    :: number "..." number
+
+-- | Collections
+tuple  :: "#[" typeDefs "]"
+        | "#[" "]"
+
+list   :: "[" typeDefs "]"
+        | "[" "]"
+
+record :: "{" typeDecls "}"
+        | "{" "}"
+        
+-- | Functions
+function     :: functionArgs "->" functionArgs
+functionArg  :: typeDef argSuffix
+functionArgs :: functionArg ("," functionArg)*
+argSuffix    :: argOptional
+              | argVariadic
+argOptional  :: "?"
+argVariadic  :: "..."
+
+-- | Delegation
+delegation :: typeDef "<|" typeDefs
+
+-- | Predicates
+predicate :: typePred "=>" typeDef
+typePred  :: "@" typeDef
+           | typeDef
+           
+-- | Tagged Unions
+taggedUnion :: tag ("|" tag)*
+tag         :: typeName typeDef*
+
+-- | Set operations
+union      :: typeDef "+" typeDef
+complement :: typeDef "\" typeDef
+
+-- | Unit type
+unit :: "void"
+```
+
+
 ## Appendix A
 
 ( ... ) TODO: Previous attempts on type notations for JS.
