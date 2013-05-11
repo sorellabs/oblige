@@ -287,7 +287,7 @@ Besides constructor/parametric types, a useful usage of type predicates
 is to specify which kind of objects a function can be applied to in
 JavaScript, due to dynamic this binding:
 
-```
+```hs
 pop: @[A] => [A] -> maybe A
 ```
 
