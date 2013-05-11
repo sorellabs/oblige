@@ -142,7 +142,7 @@ types can be stored in the collection.
 Record types are structures where the symbol on the left has the type on
 the right.
 
-```
+```hs
 rect: { x: int, y: int, width: int, height: int }
 ```
 
